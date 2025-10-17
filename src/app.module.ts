@@ -13,22 +13,18 @@ import { UsersModule } from './users/users.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: parseInt(configService.get<string>('DB_PORT') || '5432', 10),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        // 개발용 true, 배포시 false
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
-        // 배포시 true, 개발용 false
-        ssl:
-          configService.get<string>('NODE_ENV') === 'production'
-            ? { rejectUnauthorized: true }
-            : { rejectUnauthorized: false },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const nodeEnv = configService.get<string>('NODE_ENV');
+        const isProd = nodeEnv === 'production';
+
+        return {
+          type: 'postgres',
+          url: configService.get<string>('DATABASE_URL'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: !isProd, // Entity 변경 시 자동으로 DB 동기화
+          ssl: { rejectUnauthorized: false },
+        };
+      },
     }),
     UsersModule,
   ],
