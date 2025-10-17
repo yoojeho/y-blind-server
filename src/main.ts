@@ -12,6 +12,7 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+  document.components = { schemas: {} };
   SwaggerModule.setup('api-docs', app, document);
 
   await app.listen(3000);
