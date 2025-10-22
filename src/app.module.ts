@@ -1,9 +1,9 @@
-import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UsersModule } from './users/users.module';
+import { Module } from "@nestjs/common";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -14,13 +14,13 @@ import { UsersModule } from './users/users.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const nodeEnv = configService.get<string>('NODE_ENV');
-        const isProd = nodeEnv === 'production';
+        const nodeEnv = configService.get<string>("NODE_ENV");
+        const isProd = nodeEnv === "production";
 
         return {
-          type: 'postgres',
-          url: configService.get<string>('DATABASE_URL'),
-          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          type: "postgres",
+          url: configService.get<string>("DATABASE_URL"),
+          entities: [__dirname + "/**/*.entity{.ts,.js}"],
           synchronize: !isProd, // Entity 변경 시 자동으로 DB 동기화
           ssl: { rejectUnauthorized: false },
         };

@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, UpdateResult } from 'typeorm';
-import { User } from './users.entity';
-import { UpdateUserDto } from './dto/update.user.dto';
-import { CreateUserDto } from './dto/create.user.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository, UpdateResult } from "typeorm";
+import { User } from "./users.entity";
+import { UpdateUserDto } from "./dto/update.user.dto";
+import { CreateUserDto } from "./dto/create.user.dto";
 
 @Injectable()
 export class UsersService {
@@ -17,11 +17,11 @@ export class UsersService {
       return await this.userRepository.find();
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error('DB 조회 실패:', error.message);
+        console.error("DB 조회 실패:", error.message);
       } else {
-        console.error('알 수 없는 오류 발생', String(error));
+        console.error("알 수 없는 오류 발생", String(error));
       }
-      throw new Error('사용자 조회 중 오류 발생');
+      throw new Error("사용자 조회 중 오류 발생");
     }
   }
 
