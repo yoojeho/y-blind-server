@@ -15,8 +15,8 @@ async function bootstrap() {
 
   SwaggerModule.setup("api-docs", app, document, {
     swaggerOptions: {
-      defaultModelsExpandDepth: -1, // DTO 목록(Models) 접기
-      defaultModelExpandDepth: 2, // 각 스키마 상세도 닫힘 상태로
+      defaultModelsExpandDepth: -1, // DTO 목록(Models) 안보이도록
+      defaultModelExpandDepth: 2, // 각 스키마 상세 열린 상태로
     },
   });
 
