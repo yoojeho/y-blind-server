@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryGeneratedColumn, Index } from "typeorm";
+import { Exclude } from "class-transformer";
 import { BaseTimeEntity } from "../common/entities/base-time.entity";
 
 @Entity()
@@ -12,6 +13,7 @@ export class User extends BaseTimeEntity {
   username: string;
 
   // Hashed password (salt:key)
+  @Exclude({ toPlainOnly: true })
   @Column({ type: "varchar" })
   passwordHash: string;
 
