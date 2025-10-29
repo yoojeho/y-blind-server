@@ -3,7 +3,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, UpdateResult } from "typeorm";
 import { User } from "./users.entity";
 import { UpdateUserDto } from "./dto/update.user.dto";
-import { CreateUserDto } from "./dto/create.user.dto";
 
 @Injectable()
 export class UsersService {
@@ -23,11 +22,6 @@ export class UsersService {
       }
       throw new Error("사용자 조회 중 오류 발생");
     }
-  }
-
-  async addUser(createUserDto: CreateUserDto): Promise<User> {
-    const entity = this.userRepository.create(createUserDto);
-    return await this.userRepository.save(entity);
   }
 
   async updateUser(id: number, dto: UpdateUserDto): Promise<UpdateResult> {
