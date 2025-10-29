@@ -22,7 +22,7 @@ import { UsersModule } from "./users/users.module";
           url: configService.get<string>("DATABASE_URL"),
           entities: [__dirname + "/**/*.entity{.ts,.js}"],
           synchronize: !isProd, // Entity 변경 시 자동으로 DB 동기화
-          ssl: { rejectUnauthorized: false },
+          ssl: isProd ? { rejectUnauthorized: false } : undefined, // 로컬에서 개발 시에는 SSL 요구 X
         };
       },
     }),
