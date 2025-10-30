@@ -1,19 +1,30 @@
 import { Comment } from "src/post-comments/post-comments.entity";
 import { PostLike } from "src/post-likes/post-likes.entity";
 import { Post } from "src/posts/posts.entity";
-import { Entity, Column, PrimaryGeneratedColumn, OneToMany } from "typeorm";
+import { Entity, Column, PrimaryGeneratedColumn, Index, OneToMany } from "typeorm";
+import { Exclude } from "class-transformer";
+import { BaseTimeEntity } from "../common/entities/base-time.entity";
 
 @Entity()
-export class User {
+export class User extends BaseTimeEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  name: string;
+  // Required username (what signup receives as id)
+  @Index({ unique: true })
+  @Column({ type: "varchar", unique: true })
+  username: string;
 
-  @Column()
-  email: string;
+  // Hashed password (salt:key)
+  @Exclude({ toPlainOnly: true })
+  @Column({ type: "varchar" })
+  passwordHash: string;
 
+  // Optional display name
+  @Column({ type: "varchar", nullable: true })
+  nickname: string | null;
+  
+  
   @OneToMany(() => Post, (p) => p.user)
   posts: Post[];
 
