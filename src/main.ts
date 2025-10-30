@@ -12,8 +12,13 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  document.components = { schemas: {} };
-  SwaggerModule.setup("api-docs", app, document);
+
+  SwaggerModule.setup("api-docs", app, document, {
+    swaggerOptions: {
+      defaultModelsExpandDepth: -1, // DTO 목록(Models) 안보이도록
+      defaultModelExpandDepth: 2, // 각 스키마 상세 열린 상태로
+    },
+  });
 
   await app.listen(3000);
 }
