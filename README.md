@@ -31,6 +31,22 @@
 $ npm install
 ```
 
+## DB setup for development
+
+```bash
+docker run -d \
+  --name yblind-postgres \
+  -e POSTGRES_USER=app \
+  -e POSTGRES_PASSWORD=app_pw \
+  -e POSTGRES_DB=yblind \
+  -p 5432:5432 \
+  postgres:16
+```
+
+```bash
+cp .env.sample .env
+```
+
 ## Compile and run the project
 
 ```bash
