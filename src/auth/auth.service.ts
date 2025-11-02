@@ -11,6 +11,8 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 
 const scrypt = promisify(_scrypt);
+const accessExpriesIn = "1h";
+const refreshExpiresIn = "7d";
 
 @Injectable()
 export class AuthService {
@@ -60,14 +62,59 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: accessSecret,
-      expiresIn: "1h",
+      expiresIn: accessExpriesIn,
     });
 
     const refreshToken = await this.jwtService.signAsync(payload, {
       secret: refreshSecret,
-      expiresIn: "7d",
+      expiresIn: refreshExpiresIn,
     });
 
     return new SignedUserDto(user.id, user.username, user.nickname, accessToken, refreshToken);
+  }
+
+  async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    const accessSecret = this.configService.get<string>("JWT_SECRET");
+
+    if (!refreshSecret || !accessSecret) {
+      throw new Error("JWT_SECRET or JWT_REFRESH_SECRET is not defined");
+    }
+
+    try {
+      // refreshToken 검증
+      const payload: { sub: number; username: string } = this.jwtService.verify(refreshToken, {
+        secret: refreshSecret,
+      });
+
+      // 사용자 존재 확인
+      const user = await this.userRepository.findOne({
+        where: { id: payload.sub },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
+      }
+
+      // 새 accessToken 생성
+      const newPayload = { sub: user.id, username: user.username };
+      const newAccessToken = await this.jwtService.signAsync(newPayload, {
+        secret: accessSecret,
+        expiresIn: accessExpriesIn,
+      });
+
+      // 새 refreshToken도 발급 (선택사항)
+      const newRefreshToken = await this.jwtService.signAsync(newPayload, {
+        secret: refreshSecret,
+        expiresIn: refreshExpiresIn,
+      });
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
+    } catch {
+      throw new UnauthorizedException("유효하지 않은 refresh token입니다.");
+    }
   }
 }

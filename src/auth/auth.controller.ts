@@ -3,6 +3,7 @@ import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
 import { SigninDto } from "./dto/signin.dto";
+import { RefreshTokenDto } from "./dto/refreshToken.dto";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -25,5 +26,13 @@ export class AuthController {
   async signin(@Body() dto: SigninDto) {
     const user = await this.authService.signin(dto);
     return user;
+  }
+
+  @Post("refresh")
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Body() dto: RefreshTokenDto,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    return await this.authService.refreshToken(dto.refreshToken);
   }
 }
