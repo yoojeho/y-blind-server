@@ -23,8 +23,7 @@ export class User extends BaseTimeEntity {
   // Optional display name
   @Column({ type: "varchar", nullable: true })
   nickname: string | null;
-  
-  
+
   @OneToMany(() => Post, (p) => p.user)
   posts: Post[];
 
