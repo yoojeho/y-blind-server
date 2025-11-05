@@ -23,7 +23,10 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[Y-blind](https://github.com/syouzen/y-blind) 의 api server.
+- API
+  - [https://y-blind-server.onrender.com](https://y-blind-server.onrender.com)
+- [Swagger](https://y-blind-server.onrender.com/api-docs)
 
 ## Project setup
 
@@ -85,6 +88,7 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
 
 ## Resources
 
