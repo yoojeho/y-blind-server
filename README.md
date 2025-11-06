@@ -23,12 +23,31 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+[Y-blind](https://github.com/syouzen/y-blind) 의 api server.
+- API
+  - [https://y-blind-server.onrender.com](https://y-blind-server.onrender.com)
+- [Swagger](https://y-blind-server.onrender.com/api-docs)
 
 ## Project setup
 
 ```bash
 $ npm install
+```
+
+## DB setup for development
+
+```bash
+docker run -d \
+  --name yblind-postgres \
+  -e POSTGRES_USER=app \
+  -e POSTGRES_PASSWORD=app_pw \
+  -e POSTGRES_DB=yblind \
+  -p 5432:5432 \
+  postgres:16
+```
+
+```bash
+cp .env.sample .env
 ```
 
 ## Compile and run the project
@@ -69,6 +88,7 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
 
 ## Resources
 
