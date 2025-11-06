@@ -1,9 +1,9 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { PostDto } from "./post.dto";
+import { PostListDto } from "./postList.dto";
 
 export class GetPostDto {
-  @ApiProperty({ type: [PostDto] })
-  data: PostDto[];
+  @ApiProperty({ type: [PostListDto] })
+  data: PostListDto[];
 
   @ApiProperty({ example: 10 })
   total: number;
