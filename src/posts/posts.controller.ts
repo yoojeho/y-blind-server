@@ -4,7 +4,7 @@ import { CreatePostDto } from "./dto/createPost.dto";
 import { ApiOkResponse, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { GetPostDto } from "./dto/getPost.dto";
 import { UpdatePostDto } from "./dto/updatePost.dto";
-import { PostDto } from "./dto/post.dto";
+import { PostDetailDto } from "./dto/postDetail.dto";
 
 @ApiTags("Posts")
 @Controller("posts")
@@ -28,7 +28,7 @@ export class PostsController {
   }
 
   @Get(":id")
-  @ApiOkResponse({ type: PostDto, description: "게시글 상세" })
+  @ApiOkResponse({ type: PostDetailDto, description: "게시글 상세" })
   getPostById(@Param("id") id: number) {
     return this.postsService.findPostById(id);
   }

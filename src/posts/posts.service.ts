@@ -6,7 +6,8 @@ import { CreatePostDto } from "./dto/createPost.dto";
 import { UpdatePostDto } from "./dto/updatePost.dto";
 import { GetPostDto } from "./dto/getPost.dto";
 import { plainToInstance } from "class-transformer";
-import { PostDto } from "./dto/post.dto";
+import { PostListDto } from "./dto/postList.dto";
+import { PostDetailDto } from "./dto/postDetail.dto";
 import { User } from "../users/users.entity";
 
 @Injectable()
@@ -44,10 +45,11 @@ export class PostsService {
     const data = result.map((post) => ({
       ...post,
       likesCount: post.likes.length || 0,
+      commentsCount: post.comments.length || 0,
     }));
 
     return {
-      data: plainToInstance(PostDto, data, { excludeExtraneousValues: true }),
+      data: plainToInstance(PostListDto, data, { excludeExtraneousValues: true }),
       limit: data.length,
       total: data.length,
       page: 1,
@@ -67,10 +69,11 @@ export class PostsService {
     const data = result.map((post) => ({
       ...post,
       likesCount: post.likes.length || 0,
+      commentsCount: post.comments.length || 0,
     }));
 
     return {
-      data: plainToInstance(PostDto, data, { excludeExtraneousValues: true }),
+      data: plainToInstance(PostListDto, data, { excludeExtraneousValues: true }),
       limit,
       total,
       page,
@@ -78,7 +81,7 @@ export class PostsService {
     };
   }
 
-  async findPostById(id: number): Promise<PostDto> {
+  async findPostById(id: number): Promise<PostDetailDto> {
     const post = await this.postRepository.findOne({
       where: { id },
       relations: ["comments", "likes", "user"],
@@ -86,7 +89,7 @@ export class PostsService {
     if (!post) {
       throw new NotFoundException(`게시글 with ID ${id} not found`);
     }
-    return plainToInstance(PostDto, post, { excludeExtraneousValues: true });
+    return plainToInstance(PostDetailDto, post, { excludeExtraneousValues: true });
   }
 
   async updatePost(id: number, dto: UpdatePostDto): Promise<UpdateResult> {

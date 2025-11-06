@@ -3,12 +3,12 @@ import { CommentDto } from "src/post-comments/dto/comment.dto";
 import { Expose, Type } from "class-transformer";
 import { UserDto } from "src/users/dto/user.dto";
 
-export class PostDto {
+export class PostDetailDto {
   @ApiProperty({ example: 1 })
   @Expose()
   id: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ type: () => UserDto })
   @Expose()
   @Type(() => UserDto)
   user: UserDto;
@@ -32,8 +32,4 @@ export class PostDto {
   @ApiProperty({ type: [CommentDto] })
   @Expose()
   comments: CommentDto[];
-
-  @ApiProperty({ example: 1 })
-  @Expose()
-  likesCount: number;
 }
