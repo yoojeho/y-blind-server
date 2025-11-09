@@ -4,11 +4,11 @@ import { User } from "./users.entity";
 import { UpdateResult } from "typeorm";
 import { UpdateUserDto } from "./dto/update.user.dto";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
-import { AuthGuard } from "../auth/auth.guard";
+import { JwtAuthGuard } from "../auth/auth.guard";
 
 @ApiTags("users")
 @Controller("users")
-@UseGuards(AuthGuard)
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private readonly usersService: UsersService) {}
 

@@ -20,6 +20,11 @@ export class User extends BaseTimeEntity {
   @Column({ type: "varchar" })
   passwordHash: string;
 
+  // Hashed refreshToken
+  @Exclude({ toPlainOnly: true })
+  @Column({ type: "varchar", nullable: true })
+  hashedRefreshToken: string | null;
+
   // Optional display name
   @Column({ type: "varchar", nullable: true })
   nickname: string | null;
