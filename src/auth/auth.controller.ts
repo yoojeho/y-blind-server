@@ -34,8 +34,7 @@ export class AuthController {
   @Post("logout")
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: RequestWithUser) {
-    console.log(req.user);
-    return await this.authService.logout();
+    return await this.authService.logout(req.user.id);
   }
 
   @Post("refresh")

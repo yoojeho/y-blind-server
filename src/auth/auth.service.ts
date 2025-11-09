@@ -119,7 +119,22 @@ export class AuthService {
     }
   }
 
-  async logout(): Promise<{ result: boolean }> {
+  async logout(id: number): Promise<{ result: boolean }> {
+    // 사용자 존재 확인
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
+    }
+
+    // refreshToken 제거
+    await this.userRepository.update(id, {
+      ...user,
+      hashedRerfeshToken: undefined,
+    });
+
     return Promise.resolve({ result: true });
   }
 }
