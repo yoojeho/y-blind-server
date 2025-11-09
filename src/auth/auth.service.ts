@@ -5,15 +5,20 @@ import { randomBytes, scrypt as _scrypt } from "crypto";
 import { promisify } from "util";
 import { User } from "../users/users.entity";
 import { SignupDto } from "./dto/signup.dto";
-import { SigninDto } from "./dto/signin.dto";
 import { SignedUserDto } from "./dto/signedUser.dto";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { JwtPayload } from "./dto/jwtPayload.dto";
+import { SigninDto } from "./dto/signin.dto";
+import bcrypt from "bcrypt";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
 const refreshExpiresIn = "7d";
+
+const hashRefreshToken = async (token: string) => {
+  return bcrypt.hash(token, 10);
+};
 
 @Injectable()
 export class AuthService {
@@ -44,31 +49,31 @@ export class AuthService {
     return await this.userRepository.save(user);
   }
 
-  async signin(dto: SigninDto): Promise<SignedUserDto> {
+  async signin(dto: SigninDto) {
     const user = await this.userRepository.findOne({
       where: { username: dto.username },
     });
+
     if (!user) {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const accessSecret = this.configService.get<string>("JWT_SECRET");
-    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
-
-    if (!accessSecret || !refreshSecret) {
-      throw new Error("JWT_SECRET or JWT_REFRESH_SECRET is not defined");
-    }
-
     const payload: JwtPayload = { id: user.id, username: user.username };
 
-    const accessToken = await this.jwtService.signAsync(payload, {
+    const accessSecret = this.configService.get<string>("JWT_SECRET");
+    const accessToken = this.jwtService.sign(payload, {
       secret: accessSecret,
       expiresIn: accessExpriesIn,
     });
 
-    const refreshToken = await this.jwtService.signAsync(payload, {
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    const refreshToken = this.jwtService.sign(payload, {
       secret: refreshSecret,
       expiresIn: refreshExpiresIn,
+    });
+
+    await this.userRepository.update(user.id, {
+      hashedRefreshToken: await hashRefreshToken(refreshToken),
     });
 
     return new SignedUserDto(user.id, user.username, user.nickname, accessToken, refreshToken);
@@ -97,6 +102,13 @@ export class AuthService {
         throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
       }
 
+      if (
+        !user.hashedRefreshToken ||
+        !(await bcrypt.compare(refreshToken, user.hashedRefreshToken))
+      ) {
+        throw new UnauthorizedException("토큰이 유효하지 않습니다.");
+      }
+
       // 새 accessToken 생성
       const newPayload: JwtPayload = { id: user.id, username: user.username };
       const newAccessToken = await this.jwtService.signAsync(newPayload, {
@@ -104,10 +116,14 @@ export class AuthService {
         expiresIn: accessExpriesIn,
       });
 
-      // 새 refreshToken도 발급 (선택사항)
+      // 새 refreshToken도 발급
       const newRefreshToken = await this.jwtService.signAsync(newPayload, {
         secret: refreshSecret,
         expiresIn: refreshExpiresIn,
+      });
+
+      await this.userRepository.update(user.id, {
+        hashedRefreshToken: await hashRefreshToken(newRefreshToken),
       });
 
       return {
@@ -132,7 +148,7 @@ export class AuthService {
     // refreshToken 제거
     await this.userRepository.update(id, {
       ...user,
-      hashedRerfeshToken: undefined,
+      hashedRefreshToken: null,
     });
 
     return Promise.resolve({ result: true });
