@@ -9,6 +9,7 @@ import { SigninDto } from "./dto/signin.dto";
 import { SignedUserDto } from "./dto/signedUser.dto";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
+import { JwtPayload } from "./dto/jwtPayload.dto";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
@@ -51,14 +52,14 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const payload = { sub: user.id, username: user.username };
-
     const accessSecret = this.configService.get<string>("JWT_SECRET");
     const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
 
     if (!accessSecret || !refreshSecret) {
       throw new Error("JWT_SECRET or JWT_REFRESH_SECRET is not defined");
     }
+
+    const payload: JwtPayload = { id: user.id, username: user.username };
 
     const accessToken = await this.jwtService.signAsync(payload, {
       secret: accessSecret,
@@ -83,13 +84,13 @@ export class AuthService {
 
     try {
       // refreshToken 검증
-      const payload: { sub: number; username: string } = this.jwtService.verify(refreshToken, {
+      const payload: JwtPayload = this.jwtService.verify(refreshToken, {
         secret: refreshSecret,
       });
 
       // 사용자 존재 확인
       const user = await this.userRepository.findOne({
-        where: { id: payload.sub },
+        where: { id: payload.id },
       });
 
       if (!user) {
@@ -97,7 +98,7 @@ export class AuthService {
       }
 
       // 새 accessToken 생성
-      const newPayload = { sub: user.id, username: user.username };
+      const newPayload: JwtPayload = { id: user.id, username: user.username };
       const newAccessToken = await this.jwtService.signAsync(newPayload, {
         secret: accessSecret,
         expiresIn: accessExpriesIn,
@@ -116,5 +117,9 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException("유효하지 않은 refresh token입니다.");
     }
+  }
+
+  async logout(): Promise<{ result: boolean }> {
+    return Promise.resolve({ result: true });
   }
 }

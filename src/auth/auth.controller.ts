@@ -1,9 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
 import { SigninDto } from "./dto/signin.dto";
 import { RefreshTokenDto } from "./dto/refreshToken.dto";
+import { JwtAuthGuard } from "./auth.guard";
+import type { RequestWithUser } from "src/common/requests/requestWithUser";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -26,6 +28,14 @@ export class AuthController {
   async signin(@Body() dto: SigninDto) {
     const user = await this.authService.signin(dto);
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("logout")
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: RequestWithUser) {
+    console.log(req.user);
+    return await this.authService.logout();
   }
 
   @Post("refresh")
