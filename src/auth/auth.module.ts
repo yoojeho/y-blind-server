@@ -7,9 +7,10 @@ import { AuthController } from "./auth.controller";
 import { User } from "../users/users.entity";
 import { JwtAuthGuard } from "./auth.guard";
 import { JwtStrategy } from "./jwt.strategy";
+import { RefreshToken } from "src/refresh-token/refresh-token.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User]), PassportModule, JwtModule.register({})],
+  imports: [TypeOrmModule.forFeature([User, RefreshToken]), PassportModule, JwtModule.register({})],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtAuthGuard],
   exports: [JwtAuthGuard, JwtModule],
