@@ -17,10 +17,6 @@ const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
 const refreshExpiresIn = "7d";
 
-const hashRefreshToken = async (token: string) => {
-  return bcrypt.hash(token, 10);
-};
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -34,6 +30,7 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
+  // ID/PW 가입
   async signup(dto: SignupDto): Promise<User> {
     const existing = await this.userRepository.findOne({
       where: { username: dto.username },
@@ -54,49 +51,24 @@ export class AuthService {
     return await this.userRepository.save(user);
   }
 
+  // ID/PW 로그인
   async signin(dto: SigninDto) {
     const user = await this.userRepository.findOne({
       where: { username: dto.username },
-      relations: ["hashedRefreshToken"], // RefreshToken 로딩
+      relations: ["hashedRefreshToken"],
     });
 
-    if (!user) {
+    if (!user || !user.passwordHash) {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const payload: JwtPayload = { id: user.id, username: user.username };
+    const [salt, key] = user.passwordHash.split(":");
+    const derivedKey = (await scrypt(dto.pw, salt, 32)) as Buffer;
 
-    // Access Token
-    const accessSecret = this.configService.get<string>("JWT_SECRET");
-    const accessToken = this.jwtService.sign(payload, {
-      secret: accessSecret,
-      expiresIn: accessExpriesIn,
-    });
-
-    // Refresh Token
-    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: refreshSecret,
-      expiresIn: refreshExpiresIn,
-    });
-
-    // RefreshToken 엔티티 업데이트/생성
-    const hashed = await hashRefreshToken(refreshToken);
-
-    if (!user.hashedRefreshToken) {
-      // 처음 로그인 or 기존 토큰 없음 → 새 엔티티 생성
-      const tokenEntity = this.refreshTokenRepository.create({
-        value: hashed,
-        user,
-      });
-      await this.refreshTokenRepository.save(tokenEntity);
-    } else {
-      // 기존 엔티티 수정
-      user.hashedRefreshToken.value = hashed;
-      await this.refreshTokenRepository.save(user.hashedRefreshToken);
+    if (key !== derivedKey.toString("hex")) {
+      throw new UnauthorizedException("Invalid password");
     }
-
-    return new SignedUserDto(user.id, user.username, user.nickname, accessToken, refreshToken);
+    return this.generateTokens(user);
   }
 
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
@@ -129,37 +101,63 @@ export class AuthService {
       throw new UnauthorizedException("토큰이 유효하지 않습니다.");
     }
 
-    // 새 accessToken 생성
-    const newPayload: JwtPayload = { id: user.id, username: user.username };
-    const newAccessToken = await this.jwtService.signAsync(newPayload, {
+    const generatedToken = await this.generateTokens(user);
+
+    return {
+      accessToken: generatedToken.accessToken,
+      refreshToken: generatedToken.refreshToken,
+    };
+  }
+
+  // Kakao OAuth 로그인
+  // async validateKakaoUser(profile: {
+  //   id: string;
+  //   kakao_account: { email: string; nickname: string };
+  // }): Promise<SignedUserDto> {
+  //   // return this.generateTokens(user);
+  //   console.log(profile);
+  //   throw new Error("NOT IMPLEMENTED");
+  // }
+
+  // 토큰 생성/갱신
+  private async generateTokens(user: User): Promise<SignedUserDto> {
+    const payload: JwtPayload = { id: user.id, username: user.username };
+
+    // Access Token
+    const accessSecret = this.configService.get<string>("JWT_SECRET");
+    const accessToken = this.jwtService.sign(payload, {
       secret: accessSecret,
       expiresIn: accessExpriesIn,
     });
 
-    // 새 refreshToken도 발급
-    const newRefreshToken = await this.jwtService.signAsync(newPayload, {
+    // Refresh Token
+    const refreshSecret = this.configService.get<string>("JWT_REFRESH_SECRET");
+    const refreshToken = this.jwtService.sign(payload, {
       secret: refreshSecret,
       expiresIn: refreshExpiresIn,
     });
 
-    const hashedRefreshTokenValue = await hashRefreshToken(newRefreshToken);
+    const hashed = await bcrypt.hash(refreshToken, 10);
 
     if (!user.hashedRefreshToken) {
-      // 처음 발급된 경우
+      // 처음 로그인 or 기존 토큰 없음 → 새 엔티티 생성
       const tokenEntity = this.refreshTokenRepository.create({
-        value: hashedRefreshTokenValue,
+        value: hashed,
         user,
       });
       await this.refreshTokenRepository.save(tokenEntity);
     } else {
-      // 기존 토큰 갱신
-      user.hashedRefreshToken.value = hashedRefreshTokenValue;
+      // 기존 엔티티 수정
+      user.hashedRefreshToken.value = hashed;
       await this.refreshTokenRepository.save(user.hashedRefreshToken);
     }
 
     return {
-      accessToken: newAccessToken,
-      refreshToken: newRefreshToken,
+      id: user.id,
+      username: user.username,
+      nickname: user.nickname,
+      accessToken,
+      refreshToken,
     };
   }
 

@@ -11,15 +11,17 @@ export class User extends BaseTimeEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // Required username (what signup receives as id)
   @Index({ unique: true })
-  @Column({ type: "varchar", unique: true })
+  @Column({ type: "varchar", unique: true, nullable: true })
   username: string;
+
+  @Column({ type: "varchar", nullable: true, unique: true })
+  kakaoId: string | null; // Kakao OAuth 회원용
 
   // Hashed password (salt:key)
   @Exclude({ toPlainOnly: true })
-  @Column({ type: "varchar" })
-  passwordHash: string;
+  @Column({ type: "varchar", nullable: true })
+  passwordHash: string | null;
 
   // Hashed refreshToken
   @OneToOne(() => RefreshToken, (rt) => rt.user, {
