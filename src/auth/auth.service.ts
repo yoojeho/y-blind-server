@@ -12,6 +12,7 @@ import { JwtPayload } from "./dto/jwtPayload.dto";
 import { SigninDto } from "./dto/signin.dto";
 import bcrypt from "bcrypt";
 import { RefreshToken } from "src/refresh-token/refresh-token.entity";
+import type { SocialLoginDto } from "./dto/socialLogin.dto";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
@@ -36,7 +37,7 @@ export class AuthService {
       where: { username: dto.username },
     });
     if (existing) {
-      throw new ConflictException("Username already exists");
+      throw new ConflictException("User already exists");
     }
 
     const salt = randomBytes(16).toString("hex");
@@ -49,6 +50,33 @@ export class AuthService {
       nickname: null,
     });
     return await this.userRepository.save(user);
+  }
+
+  async signupWithSocialLogin(dto: SocialLoginDto): Promise<User> {
+    const existing = await this.userRepository.findOne({
+      where: { username: dto.username },
+    });
+    if (existing) {
+      throw new ConflictException("User already exists");
+    }
+    const user = this.userRepository.create({
+      username: dto.username,
+      nickname: null,
+    });
+    return await this.userRepository.save(user);
+  }
+
+  async signinWithSocialLogin(dto: SocialLoginDto) {
+    let user = await this.userRepository.findOne({
+      where: { username: dto.username },
+      relations: ["hashedRefreshToken"],
+    });
+
+    if (!user) {
+      user = await this.signupWithSocialLogin(dto);
+    }
+
+    return this.generateTokens(user);
   }
 
   // ID/PW 로그인
@@ -108,16 +136,6 @@ export class AuthService {
       refreshToken: generatedToken.refreshToken,
     };
   }
-
-  // Kakao OAuth 로그인
-  // async validateKakaoUser(profile: {
-  //   id: string;
-  //   kakao_account: { email: string; nickname: string };
-  // }): Promise<SignedUserDto> {
-  //   // return this.generateTokens(user);
-  //   console.log(profile);
-  //   throw new Error("NOT IMPLEMENTED");
-  // }
 
   // 토큰 생성/갱신
   private async generateTokens(user: User): Promise<SignedUserDto> {

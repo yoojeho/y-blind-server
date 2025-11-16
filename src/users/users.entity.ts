@@ -12,11 +12,8 @@ export class User extends BaseTimeEntity {
   id: number;
 
   @Index({ unique: true })
-  @Column({ type: "varchar", unique: true, nullable: true })
+  @Column({ type: "varchar", unique: true })
   username: string;
-
-  @Column({ type: "varchar", nullable: true, unique: true })
-  kakaoId: string | null; // Kakao OAuth 회원용
 
   // Hashed password (salt:key)
   @Exclude({ toPlainOnly: true })
@@ -28,6 +25,7 @@ export class User extends BaseTimeEntity {
     cascade: true,
   })
   hashedRefreshToken: RefreshToken | null;
+
   // Optional display name
   @Column({ type: "varchar", nullable: true })
   nickname: string | null;
