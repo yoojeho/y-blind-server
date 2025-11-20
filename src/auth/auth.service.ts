@@ -183,16 +183,14 @@ export class AuthService {
     // 사용자 존재 확인
     const user = await this.userRepository.findOne({
       where: { id },
-      relations: ["hashedRefreshToken"],
     });
 
     if (!user) {
       throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
     }
 
-    if (user.hashedRefreshToken) {
-      await this.refreshTokenRepository.remove(user.hashedRefreshToken);
-    }
+    // Refresh Token 삭제 (없어도 정상 처리)
+    await this.refreshTokenRepository.delete({ user: { id } });
 
     return { result: true };
   }
