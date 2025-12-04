@@ -24,27 +24,82 @@
 ## Description
 
 [Y-blind](https://github.com/syouzen/y-blind) 의 api server.
+
 - API
   - [https://y-blind-server.onrender.com](https://y-blind-server.onrender.com)
 - [Swagger](https://y-blind-server.onrender.com/api-docs)
 
-## Project setup
+## 🚀 빠른 시작 (Quick Start)
+
+Docker를 사용하여 서버와 데이터베이스를 한 번에 실행할 수 있습니다.
+
+### 1. 환경 변수 설정
+
+```bash
+cp .env.example .env
+```
+
+필요한 경우 `.env` 파일을 수정하세요.
+
+### 2. 전체 환경 시작
+
+```bash
+./scripts/docker-start.sh
+# or
+npm run start:docker
+```
+
+서버가 시작되면 다음 주소로 접속할 수 있습니다:
+
+- **API 서버**: http://localhost:4000
+- **Swagger API 문서**: http://localhost:4000/api-docs
+- **PostgreSQL**: localhost:5432
+
+### 3. 시드 데이터 생성 (선택 사항)
+
+도커 실행 시 시드 데이터 생성 여부를 물어봅니다:
+
+```
+시드 데이터를 생성하시겠습니까? (Y/n):
+```
+
+**생성되는 데이터:**
+
+- 테스트 유저 2명: `testuser1`, `testuser2` (비밀번호: `test1234`)
+- 샘플 게시글 7개
+
+### 4. 유용한 스크립트
+
+```bash
+# 로그 확인 (실시간)
+npm run logs
+
+# 서비스 중지
+npm run down
+
+# 서비스 재시작
+npm run restart
+
+# 서비스 상태 확인
+npm run status
+
+# 완전히 정리 (데이터 삭제)
+npm run clean
+```
+
+📖 **자세한 Docker 사용법은 [DOCKER_GUIDE.md](./DOCKER_GUIDE.md)를 참고하세요.**
+
+## 📦 일반 설치 (Manual Setup)
+
+Docker를 사용하지 않고 직접 설치하려면:
+
+### Project setup
 
 ```bash
 $ npm install
 ```
 
-## DB setup for development
-
-```bash
-docker run -d \
-  --name yblind-postgres \
-  -e POSTGRES_USER=app \
-  -e POSTGRES_PASSWORD=app_pw \
-  -e POSTGRES_DB=yblind \
-  -p 5432:5432 \
-  postgres:16
-```
+환경 변수 설정:
 
 ```bash
 cp .env.sample .env
@@ -61,6 +116,18 @@ $ npm run start:dev
 
 # production mode
 $ npm run start:prod
+```
+
+## 🗄️ 로컬 데이터베이스 정보
+
+도커를 사용하지 않을 경우 직접 DB 세팅 필요
+
+```
+Host: localhost
+Port: 5432
+Database: yblind
+User: app
+Password: app_pw
 ```
 
 ## Run tests
@@ -88,7 +155,6 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
 
 ## Resources
 
