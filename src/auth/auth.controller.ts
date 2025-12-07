@@ -1,4 +1,15 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Redirect,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
@@ -40,6 +51,22 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async signinWithKakaoCode(@Body() dto: KakaoCodeDto) {
     return await this.authService.signinWithKakaoCode(dto.code);
+  }
+
+  /**
+   * 카카오 로그인 테스트 (실제로는 클라이언트에서 code 발급까지 처리)
+   */
+  @Get("sign-in/kakao/test")
+  @Redirect("https://kauth.kakao.com/oauth", HttpStatus.TEMPORARY_REDIRECT)
+  signinWithKakaoTest() {
+    return this.authService.getKakaoLoginTestUrl();
+  }
+
+  /** 카카오 로그인 테스트 콜백 (실제로는 클라이언트로부터 signinWithKakaoCode만 호출됨) */
+  @Get("sign-in/kakao/callback")
+  @HttpCode(HttpStatus.OK)
+  async signinWithKakaoTestCallback(@Query("code") code: string) {
+    return await this.authService.signinWithKakaoCode(code);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -218,6 +218,26 @@ export class AuthService {
   }
 
   /**
+   * 테스트용 카카오 로그인 uri 반환 (상용은 클라이언트 구현이 사용됨)
+   */
+  getKakaoLoginTestUrl() {
+    const KAKAO_CLIENT_ID = this.configService.get<string>("KAKAO_CLIENT_ID");
+    const KAKAO_CALLBACK_URL = this.configService.get<string>("KAKAO_CALLBACK_URL");
+
+    if (!KAKAO_CLIENT_ID || !KAKAO_CALLBACK_URL) {
+      throw new Error("카카오 로그인 설정이 올바르지 않습니다.");
+    }
+
+    const params = new URLSearchParams({
+      client_id: KAKAO_CLIENT_ID,
+      redirect_uri: KAKAO_CALLBACK_URL,
+      response_type: "code",
+    });
+
+    return { url: `https://kauth.kakao.com/oauth/authorize?${params}` };
+  }
+
+  /**
    * Authorization Code를 카카오 액세스 토큰으로 교환
    */
   private async getKakaoTokens(code: string): Promise<KakaoTokensDto> {
