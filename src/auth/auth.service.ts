@@ -13,6 +13,8 @@ import { SigninDto } from "./dto/signin.dto";
 import bcrypt from "bcrypt";
 import { RefreshToken } from "src/refresh-token/refresh-token.entity";
 import type { SocialLoginDto } from "./dto/socialLogin.dto";
+import { KakaoUserDto } from "./dto/kakaoUser.dto";
+import { KakaoTokensDto } from "./dto/kakaoTokens.dto";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
@@ -193,5 +195,88 @@ export class AuthService {
     await this.refreshTokenRepository.delete({ user: { id } });
 
     return { result: true };
+  }
+
+  /**
+   * 카카오 Authorization Code를 받아서 로그인 처리
+   * @param code 카카오에서 발급한 Authorization Code
+   */
+  async signinWithKakaoCode(code: string): Promise<SignedUserDto> {
+    // 1. Authorization Code로 카카오 액세스 토큰 요청
+    const kakaoTokens = await this.getKakaoTokens(code);
+
+    // 2. 액세스 토큰으로 카카오 사용자 정보 조회
+    const kakaoUser = await this.getKakaoUserInfo(kakaoTokens.access_token);
+
+    // 3. 기존 로그인 로직 재사용
+    const socialLoginDto: SocialLoginDto = {
+      username: `kakao_${kakaoUser.id}`,
+      nickname: kakaoUser.kakao_account?.profile?.nickname ?? null,
+    };
+
+    return this.signinWithSocialLogin(socialLoginDto);
+  }
+
+  /**
+   * Authorization Code를 카카오 액세스 토큰으로 교환
+   */
+  private async getKakaoTokens(code: string): Promise<KakaoTokensDto> {
+    const KAKAO_CLIENT_ID = this.configService.get<string>("KAKAO_CLIENT_ID");
+    const KAKAO_CLIENT_SECRET = this.configService.get<string>("KAKAO_CLIENT_SECRET");
+    const CLIENT_URL = this.configService.get<string>("CLIENT_URL");
+
+    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET || !CLIENT_URL) {
+      throw new Error("카카오 로그인 설정이 올바르지 않습니다.");
+    }
+
+    const params = new URLSearchParams({
+      grant_type: "authorization_code",
+      client_id: KAKAO_CLIENT_ID,
+      client_secret: KAKAO_CLIENT_SECRET,
+      redirect_uri: CLIENT_URL,
+      code,
+    });
+
+    const response = await fetch("https://kauth.kakao.com/oauth/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as {
+        error_description?: string;
+        error?: string;
+      };
+      throw new UnauthorizedException(
+        `카카오 토큰 발급 실패: ${errorData.error_description || errorData.error}`,
+      );
+    }
+
+    return (await response.json()) as KakaoTokensDto;
+  }
+
+  /**
+   * 카카오 액세스 토큰으로 사용자 정보 조회 (API v2)
+   */
+  private async getKakaoUserInfo(accessToken: string): Promise<KakaoUserDto> {
+    const response = await fetch("https://kapi.kakao.com/v2/user/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = (await response.json()) as { msg?: string };
+      throw new UnauthorizedException(
+        `카카오 사용자 정보 조회 실패: ${errorData.msg || "Unknown error"}`,
+      );
+    }
+
+    return (await response.json()) as KakaoUserDto;
   }
 }

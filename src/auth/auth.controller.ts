@@ -1,25 +1,12 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
 import { SigninDto } from "./dto/signin.dto";
 import { RefreshTokenDto } from "./dto/refreshToken.dto";
-import { JwtAuthGuard, KakaoAuthGuard } from "./auth.guard";
-import type {
-  RequestWithSocialLoginUser,
-  RequestWithUser,
-} from "src/common/requests/requestWithUser";
-import type { Response } from "express";
+import { KakaoCodeDto } from "./dto/kakaoCode.dto";
+import { JwtAuthGuard } from "./auth.guard";
+import type { RequestWithUser } from "src/common/requests/requestWithUser";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -44,26 +31,15 @@ export class AuthController {
     return user;
   }
 
-  /** 카카오 로그인 (가드가 카카오 로그인 화면으로 리디렉션) */
-  @UseGuards(KakaoAuthGuard)
-  @Get("sign-in/kakao")
-  startKakaoLogin() {}
-
-  // 카카오 로그인 완료 후 호출
-  @UseGuards(KakaoAuthGuard)
-  @Get("sign-in/kakao/callback")
-  async kakaoCallback(@Req() req: RequestWithSocialLoginUser, @Res() res: Response) {
-    const user = await this.authService.signinWithSocialLogin(req.user);
-
-    const CLIENT_URL = process.env.CLIENT_URL;
-    if (!CLIENT_URL) {
-      throw new Error("CLIENT_URL is not exist.");
-    }
-
-    const redirectUrl = new URL(CLIENT_URL);
-    redirectUrl.searchParams.append("jwt", JSON.stringify(user));
-
-    return res.redirect(redirectUrl.toString());
+  /**
+   * 카카오 로그인 (클라이언트가 Authorization Code 전달)
+   * 클라이언트에서 카카오 로그인 후 받은 code를 서버로 전달하면
+   * 서버가 카카오 API를 통해 토큰을 발급받고 JWT를 반환합니다.
+   */
+  @Post("sign-in/kakao")
+  @HttpCode(HttpStatus.OK)
+  async signinWithKakaoCode(@Body() dto: KakaoCodeDto) {
+    return await this.authService.signinWithKakaoCode(dto.code);
   }
 
   @UseGuards(JwtAuthGuard)
