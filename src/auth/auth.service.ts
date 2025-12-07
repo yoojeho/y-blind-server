@@ -222,18 +222,16 @@ export class AuthService {
    */
   private async getKakaoTokens(code: string): Promise<KakaoTokensDto> {
     const KAKAO_CLIENT_ID = this.configService.get<string>("KAKAO_CLIENT_ID");
-    const KAKAO_CLIENT_SECRET = this.configService.get<string>("KAKAO_CLIENT_SECRET");
-    const CLIENT_URL = this.configService.get<string>("CLIENT_URL");
+    const KAKAO_CALLBACK_URL = this.configService.get<string>("KAKAO_CALLBACK_URL");
 
-    if (!KAKAO_CLIENT_ID || !KAKAO_CLIENT_SECRET || !CLIENT_URL) {
+    if (!KAKAO_CLIENT_ID || !KAKAO_CALLBACK_URL) {
       throw new Error("카카오 로그인 설정이 올바르지 않습니다.");
     }
 
     const params = new URLSearchParams({
       grant_type: "authorization_code",
       client_id: KAKAO_CLIENT_ID,
-      client_secret: KAKAO_CLIENT_SECRET,
-      redirect_uri: CLIENT_URL,
+      redirect_uri: KAKAO_CALLBACK_URL,
       code,
     });
 
