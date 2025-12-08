@@ -1,9 +1,23 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Query,
+  Redirect,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
 import { SigninDto } from "./dto/signin.dto";
 import { RefreshTokenDto } from "./dto/refreshToken.dto";
+import { KakaoCodeDto } from "./dto/kakaoCode.dto";
+import { JwtAuthGuard } from "./auth.guard";
+import type { RequestWithUser } from "src/common/requests/requestWithUser";
 
 @ApiTags("auth")
 @Controller("auth")
@@ -26,6 +40,40 @@ export class AuthController {
   async signin(@Body() dto: SigninDto) {
     const user = await this.authService.signin(dto);
     return user;
+  }
+
+  /**
+   * 카카오 로그인 (클라이언트가 Authorization Code 전달)
+   * 클라이언트에서 카카오 로그인 후 받은 code를 서버로 전달하면
+   * 서버가 카카오 API를 통해 토큰을 발급받고 JWT를 반환합니다.
+   */
+  @Post("sign-in/kakao")
+  @HttpCode(HttpStatus.OK)
+  async signinWithKakaoCode(@Body() dto: KakaoCodeDto) {
+    return await this.authService.signinWithKakaoCode(dto.code);
+  }
+
+  /**
+   * 카카오 로그인 테스트 (실제로는 클라이언트에서 code 발급까지 처리)
+   */
+  @Get("sign-in/kakao/test")
+  @Redirect("https://kauth.kakao.com/oauth", HttpStatus.TEMPORARY_REDIRECT)
+  signinWithKakaoTest() {
+    return this.authService.getKakaoLoginTestUrl();
+  }
+
+  /** 카카오 로그인 테스트 콜백 (실제로는 클라이언트로부터 signinWithKakaoCode만 호출됨) */
+  @Get("sign-in/kakao/callback")
+  @HttpCode(HttpStatus.OK)
+  async signinWithKakaoTestCallback(@Query("code") code: string) {
+    return await this.authService.signinWithKakaoCode(code);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("logout")
+  @HttpCode(HttpStatus.OK)
+  async logout(@Req() req: RequestWithUser) {
+    return await this.authService.logout(req.user.id);
   }
 
   @Post("refresh")
