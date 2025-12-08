@@ -7,6 +7,7 @@ import { UsersModule } from "./users/users.module";
 import { PostsModule } from "./posts/posts.module";
 import { PostCommentsModule } from "./post-comments/post-comments.module";
 import { AuthModule } from "./auth/auth.module";
+import { DatabaseSeederModule } from "./database/database-seeder.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AuthModule } from "./auth/auth.module";
     PostsModule,
     PostCommentsModule,
     AuthModule,
+    DatabaseSeederModule,
   ],
   controllers: [AppController],
   providers: [AppService],
