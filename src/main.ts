@@ -33,6 +33,12 @@ async function bootstrap() {
     }),
   );
 
+  app.enableCors({
+    origin: ["https://y-blind.vercel.app"],
+    credentials: true,
+    exposedHeaders: ["Authorization"], // * 사용할 헤더 추가.
+  });
+
   await app.listen(4000);
 }
 void bootstrap();
