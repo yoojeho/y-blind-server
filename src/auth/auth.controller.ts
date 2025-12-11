@@ -50,7 +50,7 @@ export class AuthController {
   @Post("sign-in/kakao")
   @HttpCode(HttpStatus.OK)
   async signinWithKakaoCode(@Body() dto: KakaoCodeDto) {
-    return await this.authService.signinWithKakaoCode(dto.code);
+    return await this.authService.signinWithKakaoToken(dto.token);
   }
 
   /**
@@ -66,7 +66,7 @@ export class AuthController {
   @Get("sign-in/kakao/callback")
   @HttpCode(HttpStatus.OK)
   async signinWithKakaoTestCallback(@Query("code") code: string) {
-    return await this.authService.signinWithKakaoCode(code);
+    return await this.authService.signinWithKakaoToken(code);
   }
 
   @UseGuards(JwtAuthGuard)
