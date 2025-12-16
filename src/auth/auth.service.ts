@@ -14,7 +14,6 @@ import bcrypt from "bcrypt";
 import { RefreshToken } from "src/refresh-token/refresh-token.entity";
 import type { SocialLoginDto } from "./dto/socialLogin.dto";
 import { KakaoUserDto } from "./dto/kakaoUser.dto";
-import { KakaoTokensDto } from "./dto/kakaoTokens.dto";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
@@ -198,17 +197,14 @@ export class AuthService {
   }
 
   /**
-   * 카카오 Authorization Code를 받아서 로그인 처리
-   * @param code 카카오에서 발급한 Authorization Code
+   * 카카오 Access Token를 받아서 로그인 처리
+   * @param code 카카오에서 발급한 Access Token
    */
-  async signinWithKakaoCode(code: string): Promise<SignedUserDto> {
-    // 1. Authorization Code로 카카오 액세스 토큰 요청
-    const kakaoTokens = await this.getKakaoTokens(code);
+  async signinWithKakaoToken(code: string): Promise<SignedUserDto> {
+    // 액세스 토큰으로 카카오 사용자 정보 조회
+    const kakaoUser = await this.getKakaoUserInfo(code);
 
-    // 2. 액세스 토큰으로 카카오 사용자 정보 조회
-    const kakaoUser = await this.getKakaoUserInfo(kakaoTokens.access_token);
-
-    // 3. 기존 로그인 로직 재사용
+    // 기존 로그인 로직 재사용
     const socialLoginDto: SocialLoginDto = {
       username: `kakao_${kakaoUser.id}`,
       nickname: kakaoUser.kakao_account?.profile?.nickname ?? null,
@@ -235,45 +231,6 @@ export class AuthService {
     });
 
     return { url: `https://kauth.kakao.com/oauth/authorize?${params}` };
-  }
-
-  /**
-   * Authorization Code를 카카오 액세스 토큰으로 교환
-   */
-  private async getKakaoTokens(code: string): Promise<KakaoTokensDto> {
-    const KAKAO_CLIENT_ID = this.configService.get<string>("KAKAO_CLIENT_ID");
-    const KAKAO_CALLBACK_URL = this.configService.get<string>("KAKAO_CALLBACK_URL");
-
-    if (!KAKAO_CLIENT_ID || !KAKAO_CALLBACK_URL) {
-      throw new Error("카카오 로그인 설정이 올바르지 않습니다.");
-    }
-
-    const params = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: KAKAO_CLIENT_ID,
-      redirect_uri: KAKAO_CALLBACK_URL,
-      code,
-    });
-
-    const response = await fetch("https://kauth.kakao.com/oauth/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-    });
-
-    if (!response.ok) {
-      const errorData = (await response.json()) as {
-        error_description?: string;
-        error?: string;
-      };
-      throw new UnauthorizedException(
-        `카카오 토큰 발급 실패: ${errorData.error_description || errorData.error}`,
-      );
-    }
-
-    return (await response.json()) as KakaoTokensDto;
   }
 
   /**
