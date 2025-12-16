@@ -10,15 +10,34 @@ import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { JwtPayload } from "./dto/jwtPayload.dto";
 import { SigninDto } from "./dto/signin.dto";
-import bcrypt from "bcrypt";
 import { RefreshToken } from "src/refresh-token/refresh-token.entity";
 import type { SocialLoginDto } from "./dto/socialLogin.dto";
 import { KakaoUserDto } from "./dto/kakaoUser.dto";
-import { KakaoTokensDto } from "./dto/kakaoTokens.dto";
 
 const scrypt = promisify(_scrypt);
 const accessExpriesIn = "1h";
 const refreshExpiresIn = "7d";
+
+/**
+ * scrypt로 해시 생성 (salt:hash 형식)
+ */
+async function hashWithScrypt(value: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const key = (await scrypt(value, salt, 32)) as Buffer;
+  return `${salt}:${key.toString("hex")}`;
+}
+
+/**
+ * scrypt로 해시 비교
+ */
+async function compareWithScrypt(value: string, hash: string): Promise<boolean> {
+  const [salt, storedHash] = hash.split(":");
+  if (!salt || !storedHash) {
+    return false;
+  }
+  const derivedKey = (await scrypt(value, salt, 32)) as Buffer;
+  return derivedKey.toString("hex") === storedHash;
+}
 
 @Injectable()
 export class AuthService {
@@ -42,9 +61,7 @@ export class AuthService {
       throw new ConflictException("User already exists");
     }
 
-    const salt = randomBytes(16).toString("hex");
-    const key = (await scrypt(dto.pw, salt, 32)) as Buffer;
-    const passwordHash = `${salt}:${key.toString("hex")}`;
+    const passwordHash = await hashWithScrypt(dto.pw);
 
     const user = this.userRepository.create({
       username: dto.username,
@@ -92,10 +109,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid credentials");
     }
 
-    const [salt, key] = user.passwordHash.split(":");
-    const derivedKey = (await scrypt(dto.pw, salt, 32)) as Buffer;
-
-    if (key !== derivedKey.toString("hex")) {
+    if (!(await compareWithScrypt(dto.pw, user.passwordHash))) {
       throw new UnauthorizedException("Invalid password");
     }
     return this.generateTokens(user);
@@ -124,18 +138,20 @@ export class AuthService {
       throw new UnauthorizedException("사용자를 찾을 수 없습니다.");
     }
 
-    if (
-      !user.hashedRefreshToken ||
-      !(await bcrypt.compare(refreshToken, user.hashedRefreshToken.value))
-    ) {
-      throw new UnauthorizedException("토큰이 유효하지 않습니다.");
+    // 새로 생성된 토큰으로 DB가 업데이트되었으므로, 기존 토큰과 비교하면 false가 나와야 함
+    // 만약 true가 나온다면, 같은 토큰이 재사용된 것이므로 보안 위험
+    if (!user.hashedRefreshToken) {
+      throw new UnauthorizedException("유효하지 않은 토큰입니다.");
     }
 
-    const generatedToken = await this.generateTokens(user);
+    if (!(await compareWithScrypt(refreshToken, user.hashedRefreshToken.value))) {
+      throw new UnauthorizedException("토큰이 이미 사용되었습니다.");
+    }
 
+    const tokens = await this.generateTokens(user);
     return {
-      accessToken: generatedToken.accessToken,
-      refreshToken: generatedToken.refreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     };
   }
 
@@ -157,7 +173,7 @@ export class AuthService {
       expiresIn: refreshExpiresIn,
     });
 
-    const hashed = await bcrypt.hash(refreshToken, 10);
+    const hashed = await hashWithScrypt(refreshToken);
 
     if (!user.hashedRefreshToken) {
       // 처음 로그인 or 기존 토큰 없음 → 새 엔티티 생성
@@ -198,17 +214,14 @@ export class AuthService {
   }
 
   /**
-   * 카카오 Authorization Code를 받아서 로그인 처리
-   * @param code 카카오에서 발급한 Authorization Code
+   * 카카오 Access Token를 받아서 로그인 처리
+   * @param code 카카오에서 발급한 Access Token
    */
-  async signinWithKakaoCode(code: string): Promise<SignedUserDto> {
-    // 1. Authorization Code로 카카오 액세스 토큰 요청
-    const kakaoTokens = await this.getKakaoTokens(code);
+  async signinWithKakaoToken(code: string): Promise<SignedUserDto> {
+    // 액세스 토큰으로 카카오 사용자 정보 조회
+    const kakaoUser = await this.getKakaoUserInfo(code);
 
-    // 2. 액세스 토큰으로 카카오 사용자 정보 조회
-    const kakaoUser = await this.getKakaoUserInfo(kakaoTokens.access_token);
-
-    // 3. 기존 로그인 로직 재사용
+    // 기존 로그인 로직 재사용
     const socialLoginDto: SocialLoginDto = {
       username: `kakao_${kakaoUser.id}`,
       nickname: kakaoUser.kakao_account?.profile?.nickname ?? null,
@@ -235,45 +248,6 @@ export class AuthService {
     });
 
     return { url: `https://kauth.kakao.com/oauth/authorize?${params}` };
-  }
-
-  /**
-   * Authorization Code를 카카오 액세스 토큰으로 교환
-   */
-  private async getKakaoTokens(code: string): Promise<KakaoTokensDto> {
-    const KAKAO_CLIENT_ID = this.configService.get<string>("KAKAO_CLIENT_ID");
-    const KAKAO_CALLBACK_URL = this.configService.get<string>("KAKAO_CALLBACK_URL");
-
-    if (!KAKAO_CLIENT_ID || !KAKAO_CALLBACK_URL) {
-      throw new Error("카카오 로그인 설정이 올바르지 않습니다.");
-    }
-
-    const params = new URLSearchParams({
-      grant_type: "authorization_code",
-      client_id: KAKAO_CLIENT_ID,
-      redirect_uri: KAKAO_CALLBACK_URL,
-      code,
-    });
-
-    const response = await fetch("https://kauth.kakao.com/oauth/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-    });
-
-    if (!response.ok) {
-      const errorData = (await response.json()) as {
-        error_description?: string;
-        error?: string;
-      };
-      throw new UnauthorizedException(
-        `카카오 토큰 발급 실패: ${errorData.error_description || errorData.error}`,
-      );
-    }
-
-    return (await response.json()) as KakaoTokensDto;
   }
 
   /**
