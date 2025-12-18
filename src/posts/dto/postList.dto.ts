@@ -28,11 +28,15 @@ export class PostListDto {
   @Expose()
   updatedAt: Date;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: 0, description: "좋아요 개수" })
   @Expose()
-  likesCount: number;
+  likeCount: number;
 
-  @ApiProperty({ example: 1 })
+  @ApiProperty({ example: 0, description: "댓글 개수" })
   @Expose()
   commentsCount: number;
+
+  @ApiProperty({ example: false, description: "내가 좋아요를 눌렀는지 여부 (로그인 시에만)" })
+  @Expose()
+  isLikedByMe: boolean;
 }
