@@ -9,6 +9,7 @@ import { plainToInstance } from "class-transformer";
 import { PostListDto } from "./dto/postList.dto";
 import { PostDetailDto } from "./dto/postDetail.dto";
 import { User } from "../users/users.entity";
+import { CommentDto } from "../post-comments/dto/comment.dto";
 
 @Injectable()
 export class PostsService {
@@ -36,16 +37,17 @@ export class PostsService {
   }
 
   // 전체 목록
-  async findAllPosts(): Promise<GetPostDto> {
+  async findAllPosts(userId?: number): Promise<GetPostDto> {
     const result = await this.postRepository.find({
       order: { createdAt: "DESC" },
-      relations: ["comments", "likes", "user"],
+      relations: ["comments", "likes", "likes.user", "user"],
     });
 
     const data = result.map((post) => ({
       ...post,
-      likesCount: post.likes.length || 0,
+      likeCount: post.likes.length || 0,
       commentsCount: post.comments.length || 0,
+      isLikedByMe: userId ? post.likes.some((like) => like.user.id === userId) : false,
     }));
 
     return {
@@ -58,18 +60,23 @@ export class PostsService {
   }
 
   // 페이지네이션 목록
-  async findAllPostWithPagination(page: number, limit: number): Promise<GetPostDto> {
+  async findAllPostWithPagination(
+    page: number,
+    limit: number,
+    userId?: number,
+  ): Promise<GetPostDto> {
     const [result, total] = await this.postRepository.findAndCount({
       skip: (page - 1) * limit,
       take: limit,
       order: { createdAt: "DESC" },
-      relations: ["comments", "likes", "user"],
+      relations: ["comments", "likes", "likes.user", "user"],
     });
 
     const data = result.map((post) => ({
       ...post,
-      likesCount: post.likes.length || 0,
+      likeCount: post.likes.length || 0,
       commentsCount: post.comments.length || 0,
+      isLikedByMe: userId ? post.likes.some((like) => like.user.id === userId) : false,
     }));
 
     return {
@@ -81,15 +88,63 @@ export class PostsService {
     };
   }
 
-  async findPostById(id: number): Promise<PostDetailDto> {
+  async findPostById(id: number, userId?: number): Promise<PostDetailDto> {
     const post = await this.postRepository.findOne({
       where: { id },
-      relations: ["comments", "likes", "user"],
+      relations: [
+        "user",
+        "likes",
+        "likes.user",
+        "comments",
+        "comments.user",
+        "comments.likes",
+        "comments.likes.user",
+        "comments.parentComment",
+        "comments.replies",
+        "comments.replies.user",
+        "comments.replies.likes",
+        "comments.replies.likes.user",
+      ],
+      order: {
+        comments: {
+          createdAt: "ASC",
+        },
+      },
     });
     if (!post) {
       throw new NotFoundException(`게시글 with ID ${id} not found`);
     }
-    return plainToInstance(PostDetailDto, post, { excludeExtraneousValues: true });
+
+    const postData = plainToInstance(PostDetailDto, post, { excludeExtraneousValues: true });
+    postData.likeCount = post.likes?.length || 0;
+    postData.isLikedByMe = userId ? post.likes.some((like) => like.user.id === userId) : false;
+
+    // 댓글 데이터 매핑 (부모 댓글만 필터링)
+    const parentComments = post.comments.filter((comment) => !comment.parentComment);
+    postData.comments = parentComments.map((comment) => {
+      const commentDto = plainToInstance(CommentDto, comment, { excludeExtraneousValues: true });
+      commentDto.postId = post.id;
+      commentDto.parentCommentId = null;
+      commentDto.likeCount = comment.likes?.length || 0;
+      commentDto.isLikedByMe = userId
+        ? comment.likes?.some((like) => like.user.id === userId) || false
+        : false;
+      commentDto.replies =
+        comment.replies?.map((reply) => {
+          const replyDto = plainToInstance(CommentDto, reply, { excludeExtraneousValues: true });
+          replyDto.postId = post.id;
+          replyDto.parentCommentId = comment.id;
+          replyDto.likeCount = reply.likes?.length || 0;
+          replyDto.isLikedByMe = userId
+            ? reply.likes?.some((like) => like.user.id === userId) || false
+            : false;
+          replyDto.replies = [];
+          return replyDto;
+        }) || [];
+      return commentDto;
+    });
+
+    return postData;
   }
 
   async updatePost(id: number, dto: UpdatePostDto): Promise<UpdateResult> {
