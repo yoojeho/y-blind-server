@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException, ForbiddenException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, UpdateResult } from "typeorm";
 import { Post } from "./posts.entity";
@@ -9,6 +9,7 @@ import { plainToInstance } from "class-transformer";
 import { PostListDto } from "./dto/postList.dto";
 import { PostDetailDto } from "./dto/postDetail.dto";
 import { User } from "../users/users.entity";
+import { JwtPayload } from "../auth/dto/jwtPayload.dto";
 
 @Injectable()
 export class PostsService {
@@ -19,18 +20,11 @@ export class PostsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  async createPost(createPostDto: CreatePostDto): Promise<Post> {
-    const { userId, ...postData } = createPostDto;
-
-    // 사용자 존재 여부 확인
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException(`ID ${userId}에 해당하는 사용자를 찾을 수 없습니다.`);
-    }
-
+  async createPost(createPostDto: CreatePostDto, user: JwtPayload): Promise<Post> {
+    // JWT 토큰에서 가져온 user 정보로 게시글 생성
     const entity = this.postRepository.create({
-      user: { id: userId },
-      ...postData,
+      user: { id: user.id },
+      ...createPostDto,
     });
     return await this.postRepository.save(entity);
   }
@@ -92,14 +86,41 @@ export class PostsService {
     return plainToInstance(PostDetailDto, post, { excludeExtraneousValues: true });
   }
 
-  async updatePost(id: number, dto: UpdatePostDto): Promise<UpdateResult> {
+  async updatePost(id: number, dto: UpdatePostDto, user: JwtPayload): Promise<UpdateResult> {
+    // 게시글 존재 여부 및 작성자 확인
+    const post = await this.postRepository.findOne({
+      where: { id },
+      relations: ["user"],
+    });
+
+    if (!post) {
+      throw new NotFoundException(`ID ${id}에 해당하는 게시글을 찾을 수 없습니다.`);
+    }
+
+    // 작성자 본인인지 확인
+    if (post.user.id !== user.id) {
+      throw new ForbiddenException("본인의 게시글만 수정할 수 있습니다.");
+    }
+
     return await this.postRepository.update(id, dto);
   }
 
-  async deletePost(id: number): Promise<void> {
-    const result = await this.postRepository.delete(id);
-    if (result.affected === 0) {
-      throw new Error(`게시글 with ID ${id} not found`);
+  async deletePost(id: number, user: JwtPayload): Promise<void> {
+    // 게시글 존재 여부 및 작성자 확인
+    const post = await this.postRepository.findOne({
+      where: { id },
+      relations: ["user"],
+    });
+
+    if (!post) {
+      throw new NotFoundException(`ID ${id}에 해당하는 게시글을 찾을 수 없습니다.`);
     }
+
+    // 작성자 본인인지 확인
+    if (post.user.id !== user.id) {
+      throw new ForbiddenException("본인의 게시글만 삭제할 수 있습니다.");
+    }
+
+    await this.postRepository.delete(id);
   }
 }
