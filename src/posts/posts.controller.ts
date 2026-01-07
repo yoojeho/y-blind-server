@@ -12,12 +12,13 @@ import {
 } from "@nestjs/common";
 import { PostsService } from "./posts.service";
 import { CreatePostDto } from "./dto/createPost.dto";
-import { ApiOkResponse, ApiQuery, ApiTags, ApiBearerAuth } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { GetPostDto } from "./dto/getPost.dto";
 import { UpdatePostDto } from "./dto/updatePost.dto";
 import { PostDetailDto } from "./dto/postDetail.dto";
-import { JwtAuthGuard } from "../auth/auth.guard";
-import type { RequestWithUser } from "../common/requests/requestWithUser";
+import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
+import type { RequestWithUser, RequestWithOptionalUser } from "../common/requests/requestWithUser";
+import { JwtAuthGuard } from "src/auth/auth.guard";
 
 @ApiTags("Posts")
 @Controller("posts")
@@ -32,20 +33,30 @@ export class PostsController {
   }
 
   @Get()
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
   @ApiQuery({ name: "page", required: false, example: 1 })
   @ApiQuery({ name: "limit", required: false, example: 10 })
   @ApiOkResponse({ type: GetPostDto, description: "게시글 목록" })
-  getPosts(@Query("page") page: number, @Query("limit") limit: number) {
+  getPosts(
+    @Query("page") page: number,
+    @Query("limit") limit: number,
+    @Request() req: RequestWithOptionalUser,
+  ) {
+    const userId = req.user?.id;
     if (!page || !limit) {
-      return this.postsService.findAllPosts();
+      return this.postsService.findAllPosts(userId);
     }
-    return this.postsService.findAllPostWithPagination(Number(page), Number(limit));
+    return this.postsService.findAllPostWithPagination(Number(page), Number(limit), userId);
   }
 
   @Get(":id")
+  @UseGuards(OptionalJwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOkResponse({ type: PostDetailDto, description: "게시글 상세" })
-  getPostById(@Param("id") id: number) {
-    return this.postsService.findPostById(id);
+  getPostById(@Param("id") id: number, @Request() req: RequestWithOptionalUser) {
+    const userId = req.user?.id;
+    return this.postsService.findPostById(id, userId);
   }
 
   @Patch(":id")

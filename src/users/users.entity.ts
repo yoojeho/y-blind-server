@@ -1,5 +1,6 @@
 import { Comment } from "src/post-comments/post-comments.entity";
 import { PostLike } from "src/post-likes/post-likes.entity";
+import { CommentLike } from "src/comment-likes/comment-likes.entity";
 import { Post } from "src/posts/posts.entity";
 import { Entity, Column, PrimaryGeneratedColumn, Index, OneToMany, OneToOne } from "typeorm";
 import { Exclude } from "class-transformer";
@@ -38,4 +39,7 @@ export class User extends BaseTimeEntity {
 
   @OneToMany(() => PostLike, (l) => l.user)
   likes: PostLike[];
+
+  @OneToMany(() => CommentLike, (l) => l.user)
+  commentLikes: CommentLike[];
 }

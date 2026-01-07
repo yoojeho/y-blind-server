@@ -8,6 +8,8 @@ import { PostsModule } from "./posts/posts.module";
 import { PostCommentsModule } from "./post-comments/post-comments.module";
 import { AuthModule } from "./auth/auth.module";
 import { DatabaseSeederModule } from "./database/database-seeder.module";
+import { PostLikesModule } from "./post-likes/post-likes.module";
+import { CommentLikesModule } from "./comment-likes/comment-likes.module";
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 
 @Module({
@@ -34,6 +36,8 @@ import { LoggerMiddleware } from "./common/middleware/logger.middleware";
     UsersModule,
     PostsModule,
     PostCommentsModule,
+    PostLikesModule,
+    CommentLikesModule,
     AuthModule,
     DatabaseSeederModule,
   ],
