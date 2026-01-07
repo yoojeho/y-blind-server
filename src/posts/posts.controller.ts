@@ -28,8 +28,6 @@ export class PostsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  createPost(@Body() createPostDto: CreatePostDto) {
-    return this.postsService.createPost(createPostDto);
   createPost(@Body() createPostDto: CreatePostDto, @Request() req: RequestWithUser) {
     return this.postsService.createPost(createPostDto, req.user);
   }
