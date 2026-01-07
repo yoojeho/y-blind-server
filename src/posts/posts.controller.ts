@@ -17,7 +17,7 @@ import { GetPostDto } from "./dto/getPost.dto";
 import { UpdatePostDto } from "./dto/updatePost.dto";
 import { PostDetailDto } from "./dto/postDetail.dto";
 import { OptionalJwtAuthGuard } from "../auth/optional-jwt-auth.guard";
-import type { RequestWithOptionalUser } from "../common/requests/requestWithUser";
+import type { RequestWithUser, RequestWithOptionalUser } from "../common/requests/requestWithUser";
 import { JwtAuthGuard } from "src/auth/auth.guard";
 
 @ApiTags("Posts")
@@ -30,6 +30,8 @@ export class PostsController {
   @ApiBearerAuth()
   createPost(@Body() createPostDto: CreatePostDto) {
     return this.postsService.createPost(createPostDto);
+  createPost(@Body() createPostDto: CreatePostDto, @Request() req: RequestWithUser) {
+    return this.postsService.createPost(createPostDto, req.user);
   }
 
   @Get()
@@ -60,12 +62,20 @@ export class PostsController {
   }
 
   @Patch(":id")
-  updatePost(@Param("id") id: number, @Body() updatePostDto: UpdatePostDto) {
-    return this.postsService.updatePost(id, updatePostDto);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  updatePost(
+    @Param("id") id: number,
+    @Body() updatePostDto: UpdatePostDto,
+    @Request() req: RequestWithUser,
+  ) {
+    return this.postsService.updatePost(id, updatePostDto, req.user);
   }
 
   @Delete(":id")
-  deletePost(@Param("id") id: number) {
-    return this.postsService.deletePost(id);
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  deletePost(@Param("id") id: number, @Request() req: RequestWithUser) {
+    return this.postsService.deletePost(id, req.user);
   }
 }
