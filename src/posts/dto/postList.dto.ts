@@ -39,4 +39,8 @@ export class PostListDto {
   @ApiProperty({ example: false, description: "내가 좋아요를 눌렀는지 여부 (로그인 시에만)" })
   @Expose()
   isLikedByMe: boolean;
+
+  @ApiProperty({ example: ["태그1", "태그2"], description: "해시태그 배열", type: [String] })
+  @Expose()
+  hashtags?: string[];
 }

@@ -6,10 +6,13 @@ import {
   UpdateDateColumn,
   ManyToOne,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from "typeorm";
 import { User } from "../users/users.entity";
 import { Comment } from "../post-comments/post-comments.entity";
 import { PostLike } from "../post-likes/post-likes.entity";
+import { HashTag } from "../hashtag/hash-tag.entity";
 import { ApiProperty } from "@nestjs/swagger";
 
 @Entity({ name: "posts" })
@@ -43,4 +46,12 @@ export class Post {
 
   @OneToMany(() => PostLike, (l) => l.post, { cascade: true })
   likes: PostLike[];
+
+  @ManyToMany(() => HashTag, (hashtag) => hashtag.posts)
+  @JoinTable({
+    name: "post_hashtags",
+    joinColumn: { name: "post_id", referencedColumnName: "id" },
+    inverseJoinColumn: { name: "hashtag_id", referencedColumnName: "id" },
+  })
+  hashtags: HashTag[];
 }

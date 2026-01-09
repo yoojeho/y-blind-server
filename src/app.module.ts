@@ -10,6 +10,7 @@ import { AuthModule } from "./auth/auth.module";
 import { DatabaseSeederModule } from "./database/database-seeder.module";
 import { PostLikesModule } from "./post-likes/post-likes.module";
 import { CommentLikesModule } from "./comment-likes/comment-likes.module";
+import { HashTagModule } from "./hashtag/hash-tag.module";
 import { LoggerMiddleware } from "./common/middleware/logger.middleware";
 
 @Module({
@@ -38,6 +39,7 @@ import { LoggerMiddleware } from "./common/middleware/logger.middleware";
     PostCommentsModule,
     PostLikesModule,
     CommentLikesModule,
+    HashTagModule,
     AuthModule,
     DatabaseSeederModule,
   ],

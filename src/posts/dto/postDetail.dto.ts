@@ -40,4 +40,8 @@ export class PostDetailDto {
   @ApiProperty({ type: [CommentDto] })
   @Expose()
   comments: CommentDto[];
+
+  @ApiProperty({ example: ["태그1", "태그2"], description: "해시태그 배열", type: [String] })
+  @Expose()
+  hashtags?: string[];
 }
