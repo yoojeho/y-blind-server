@@ -10,7 +10,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { ApiTags } from "@nestjs/swagger";
+import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { AuthService } from "./auth.service";
 import { SignupDto } from "./dto/signup.dto";
 import { SigninDto } from "./dto/signin.dto";
@@ -25,6 +25,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post("sign-up")
+  @ApiOperation({ summary: "회원가입" })
   @HttpCode(HttpStatus.CREATED)
   async signup(@Body() dto: SignupDto) {
     const user = await this.authService.signup(dto);
@@ -36,6 +37,7 @@ export class AuthController {
   }
 
   @Post("sign-in")
+  @ApiOperation({ summary: "로그인" })
   @HttpCode(HttpStatus.OK)
   async signin(@Body() dto: SigninDto) {
     const user = await this.authService.signin(dto);
@@ -48,6 +50,7 @@ export class AuthController {
    * 서버가 카카오 API를 통해 토큰을 발급받고 JWT를 반환합니다.
    */
   @Post("sign-in/kakao")
+  @ApiOperation({ summary: "카카오 로그인" })
   @HttpCode(HttpStatus.OK)
   async signinWithKakaoCode(@Body() dto: KakaoCodeDto) {
     return await this.authService.signinWithKakaoToken(dto.token);
@@ -57,6 +60,7 @@ export class AuthController {
    * 카카오 로그인 테스트 (실제로는 클라이언트에서 code 발급까지 처리)
    */
   @Get("sign-in/kakao/test")
+  @ApiOperation({ summary: "카카오 로그인 테스트" })
   @Redirect("https://kauth.kakao.com/oauth", HttpStatus.TEMPORARY_REDIRECT)
   signinWithKakaoTest() {
     return this.authService.getKakaoLoginTestUrl();
@@ -64,6 +68,7 @@ export class AuthController {
 
   /** 카카오 로그인 테스트 콜백 (실제로는 클라이언트로부터 signinWithKakaoCode만 호출됨) */
   @Get("sign-in/kakao/callback")
+  @ApiOperation({ summary: "카카오 로그인 테스트 콜백" })
   @HttpCode(HttpStatus.OK)
   async signinWithKakaoTestCallback(@Query("code") code: string) {
     return await this.authService.signinWithKakaoToken(code);
@@ -71,12 +76,14 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Post("logout")
+  @ApiOperation({ summary: "로그아웃" })
   @HttpCode(HttpStatus.OK)
   async logout(@Req() req: RequestWithUser) {
     return await this.authService.logout(req.user.id);
   }
 
   @Post("refresh")
+  @ApiOperation({ summary: "인증 토큰 갱신" })
   @HttpCode(HttpStatus.OK)
   async refresh(
     @Body() dto: RefreshTokenDto,

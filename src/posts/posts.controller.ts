@@ -12,7 +12,7 @@ import {
 } from "@nestjs/common";
 import { PostsService } from "./posts.service";
 import { CreatePostDto } from "./dto/createPost.dto";
-import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from "@nestjs/swagger";
 import { GetPostDto } from "./dto/getPost.dto";
 import { UpdatePostDto } from "./dto/updatePost.dto";
 import { PostDetailDto } from "./dto/postDetail.dto";
@@ -28,6 +28,7 @@ export class PostsController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: "게시글 작성" })
   createPost(@Body() createPostDto: CreatePostDto, @Request() req: RequestWithUser) {
     return this.postsService.createPost(createPostDto, req.user);
   }
@@ -35,6 +36,7 @@ export class PostsController {
   @Get()
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: "게시글 목록 조회" })
   @ApiQuery({ name: "page", required: false, example: 1 })
   @ApiQuery({ name: "limit", required: false, example: 10 })
   @ApiOkResponse({ type: GetPostDto, description: "게시글 목록" })
@@ -53,6 +55,7 @@ export class PostsController {
   @Get(":id")
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: "게시글 상세 조회" })
   @ApiOkResponse({ type: PostDetailDto, description: "게시글 상세" })
   getPostById(@Param("id") id: number, @Request() req: RequestWithOptionalUser) {
     const userId = req.user?.id;
@@ -62,6 +65,7 @@ export class PostsController {
   @Patch(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: "게시글 수정" })
   updatePost(
     @Param("id") id: number,
     @Body() updatePostDto: UpdatePostDto,
@@ -73,6 +77,7 @@ export class PostsController {
   @Delete(":id")
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @ApiOperation({ summary: "게시글 삭제" })
   deletePost(@Param("id") id: number, @Request() req: RequestWithUser) {
     return this.postsService.deletePost(id, req.user);
   }
