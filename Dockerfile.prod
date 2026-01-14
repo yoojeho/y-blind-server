@@ -21,9 +21,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# 프로덕션 의존성만 설치
+# 프로덕션 의존성만 설치 (스크립트 실행 건너뛰기 - husky 등 devDependencies 필요)
 COPY package*.json ./
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
 
 # 빌드된 파일만 복사 (builder 스테이지의 dist 폴더만)
 COPY --from=builder /app/dist ./dist
