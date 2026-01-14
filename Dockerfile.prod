@@ -1,0 +1,35 @@
+# 프로덕션 환경용 Dockerfile (멀티 스테이지 빌드)
+# 멀티 스테이지 빌드의 장점: builder 스테이지는 최종 이미지에 포함되지 않아 크기가 작음
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# 의존성 파일 복사 (레이어 캐싱 최적화)
+COPY package*.json ./
+
+# 모든 의존성 설치 (빌드를 위해 devDependencies 필요)
+RUN npm ci && npm cache clean --force
+
+# 소스 코드 및 설정 파일 복사
+COPY . .
+
+# TypeScript 빌드
+RUN npm run build
+
+# 프로덕션 런타임 스테이지 (최종 이미지는 이 스테이지만 포함)
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 프로덕션 의존성만 설치
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# 빌드된 파일만 복사 (builder 스테이지의 dist 폴더만)
+COPY --from=builder /app/dist ./dist
+
+# 애플리케이션 포트 노출
+EXPOSE 4000
+
+# 프로덕션 모드로 실행
+CMD ["npm", "run", "start:prod"]

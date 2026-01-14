@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: yblind-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      TZ: Asia/Seoul
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-prod:/var/lib/postgresql/data
+    networks:
+      - yblind-network-prod
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nestjs:
+    build:
+      context: ./
+      dockerfile: Dockerfile.prod
+    container_name: yblind-nestjs-prod
+    restart: always
+    ports:
+      - "4000:4000"
+    env_file:
+      - .env
+    environment:
+      # 컨테이너 내부에서 postgres 서비스명으로 연결
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # 프로덕션에서는 시드 데이터 생성 비활성화
+      ENABLE_SEED_DATA: ${ENABLE_SEED_DATA:-false}
+      NODE_ENV: production
+    networks:
+      - yblind-network-prod
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data-prod:
+
+networks:
+  yblind-network-prod:
+    driver: bridge
