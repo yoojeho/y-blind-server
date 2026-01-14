@@ -43,12 +43,24 @@ echo "🚀 Docker Engine 설치 중..."
 apt-get update
 apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
-# 6. Docker 서비스 시작 및 자동 시작 설정
+# 6. docker-compose 호환성 확인 및 설치 (필요시)
+echo "🔍 docker-compose 확인 중..."
+if ! command -v docker-compose &> /dev/null; then
+    echo "📦 docker-compose (standalone) 설치 중..."
+    DOCKER_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\" -f4)
+    curl -L "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    echo "✅ docker-compose 설치 완료"
+else
+    echo "✅ docker-compose가 이미 설치되어 있습니다."
+fi
+
+# 7. Docker 서비스 시작 및 자동 시작 설정
 echo "⚙️  Docker 서비스 시작 중..."
 systemctl start docker
 systemctl enable docker
 
-# 7. 현재 사용자를 docker 그룹에 추가
+# 8. 현재 사용자를 docker 그룹에 추가
 if [ -n "$SUDO_USER" ]; then
     echo "👤 사용자 '$SUDO_USER'를 docker 그룹에 추가 중..."
     usermod -aG docker "$SUDO_USER"
@@ -57,7 +69,19 @@ else
     echo "   sudo usermod -aG docker \$USER"
 fi
 
+# 9. 설치 확인
 echo ""
+echo "🔍 설치 확인 중..."
+echo ""
+DOCKER_VERSION=$(docker --version 2>/dev/null || echo "❌ 설치 실패")
+COMPOSE_PLUGIN_VERSION=$(docker compose version 2>/dev/null || echo "❌ 설치 실패")
+COMPOSE_STANDALONE_VERSION=$(docker-compose --version 2>/dev/null || echo "❌ 설치 실패")
+
+echo "Docker: $DOCKER_VERSION"
+echo "Docker Compose (plugin): $COMPOSE_PLUGIN_VERSION"
+echo "Docker Compose (standalone): $COMPOSE_STANDALONE_VERSION"
+echo ""
+
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "✅ Docker 설치가 완료되었습니다!"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -67,11 +91,12 @@ echo ""
 echo "1. 재로그인하거나 다음 명령어 실행:"
 echo "   newgrp docker"
 echo ""
-echo "2. 설치 확인:"
+echo "2. 설치 확인 (재로그인 후):"
 echo "   docker --version"
 echo "   docker compose version"
+echo "   docker-compose --version"
 echo "   docker run hello-world"
 echo ""
 echo "3. 프로덕션 환경 시작:"
-echo "   npm run start:docker:prod"
+echo "   yarn start:docker:prod"
 echo ""
