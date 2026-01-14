@@ -6,10 +6,23 @@ echo "🚀 Y-Blind 프로덕션 환경을 시작합니다..."
 echo ""
 
 # Docker 데몬 확인
-if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker가 실행중이지 않습니다."
-    echo "   Ubuntu/Linux: sudo systemctl start docker"
-    echo "   또는 Docker 서비스를 시작해주세요."
+DOCKER_ERROR=$(docker ps 2>&1)
+DOCKER_EXIT_CODE=$?
+if [ $DOCKER_EXIT_CODE -ne 0 ]; then
+    # 오류 원인 확인
+    if echo "$DOCKER_ERROR" | grep -q "permission denied"; then
+        echo "❌ Docker 권한 오류가 발생했습니다."
+        echo "   현재 사용자를 docker 그룹에 추가해주세요:"
+        echo "   sudo usermod -aG docker \$USER"
+        echo "   그 후 재로그인하거나: newgrp docker"
+    elif echo "$DOCKER_ERROR" | grep -q "Cannot connect"; then
+        echo "❌ Docker 서비스가 실행중이지 않습니다."
+        echo "   Ubuntu/Linux: sudo systemctl start docker"
+    else
+        echo "❌ Docker에 접근할 수 없습니다."
+        echo "   오류: $DOCKER_ERROR"
+        echo "   Docker가 설치되어 있는지 확인해주세요."
+    fi
     exit 1
 fi
 
