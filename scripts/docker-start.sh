@@ -7,7 +7,9 @@ echo ""
 
 # Docker 데몬 확인
 if ! docker info > /dev/null 2>&1; then
-    echo "❌ Docker가 실행중이지 않습니다. Docker Desktop을 실행해주세요."
+    echo "❌ Docker가 실행중이지 않습니다."
+    echo "   Ubuntu/Linux: sudo systemctl start docker"
+    echo "   Windows/Mac: Docker Desktop을 실행해주세요."
     exit 1
 fi
 
