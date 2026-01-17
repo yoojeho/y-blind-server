@@ -23,13 +23,14 @@ import { LoggerMiddleware } from "./common/middleware/logger.middleware";
       useFactory: (configService: ConfigService) => {
         const nodeEnv = configService.get<string>("NODE_ENV");
         const isProd = nodeEnv === "production";
+        const dbUseSsl = configService.get<string>("DB_USE_SSL") === "true";
 
         return {
           type: "postgres",
           url: configService.get<string>("DATABASE_URL"),
           entities: [__dirname + "/**/*.entity{.ts,.js}"],
           synchronize: !isProd, // Entity 변경 시 자동으로 DB 동기화
-          ssl: isProd ? { rejectUnauthorized: false } : undefined, // 로컬에서 개발 시에는 SSL 요구 X
+          ssl: dbUseSsl ? { rejectUnauthorized: false } : undefined, // 외부 DB 연결 시에만 SSL 사용
         };
       },
     }),
